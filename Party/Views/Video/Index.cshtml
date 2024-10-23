@@ -1,0 +1,37 @@
+﻿@{
+    ViewData["Title"] = "webcam";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Capture</title>
+</head>
+<body>
+    <h1>攝像頭擷取</h1>
+    <video id="webcam" autoplay playsinline></video>
+    <button id="startButton">啟動攝像頭</button>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const startButton = document.getElementById('startButton');
+
+        startButton.addEventListener('click', async () => {
+            try {
+                // 請求存取攝像頭
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true, // 也可以設置 `{ video: { facingMode: "user" } }` 選擇前置攝像頭
+                    audio: false // 如果需要音訊，設置為 `true`
+                });
+
+                // 將流媒體（stream）設置為 video 元素的來源
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('無法存取攝像頭:', error);
+            }
+        });
+    </script>
+</body>
+</html>
+
