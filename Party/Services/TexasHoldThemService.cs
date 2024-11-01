@@ -1,20 +1,53 @@
-﻿using Microsoft.Extensions.Localization;
+﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Localization;
 using Party.Data;
 using Party.Models;
+using Party.Unit;
+using System.Collections.Concurrent;
 using static Party.Services.PokerDeckService;
 
 namespace Party.Services
 {
     public class TexasHoldThemService
     {
+        /// <summary>
+        /// 房間對遊戲
+        /// </summary>
+        public static ConcurrentDictionary<String, TexasHoldThemService> PokerRoomDic = new();
+
         private readonly ApplicationDbContext _context;
         private readonly IStringLocalizer<TexasHoldThemService> _localizer;
+        /// <summary>
+        /// 起始玩家
+        /// </summary>
         private int _starter;
-        private int _allInChips;
+
+        /// <summary>
+        /// 目前最大下注
+        /// </summary>
+        private ulong _allInChips;
+        /// <summary>
+        /// 檯面總數
+        /// </summary>
+        private ulong _allBoardChips;
+        /// <summary>
+        /// 最後加注玩家
+        /// </summary>
         private int _addBetPlayer;
         private Deck _deck;
         private List<Card> _boardCards;
-        Dictionary<int, PokerUser> PokerUserDic = new();
+        private int _nowRound;
+        /// <summary>
+        /// 座位對玩家
+        /// </summary>
+        private Dictionary<int, PokerUser> PokerUserDic = new();
+        /// <summary>
+        /// ID對玩家
+        /// </summary>
+        private Dictionary<ulong, PokerUser> IDPokerUserDic = new();
+
         public TexasHoldThemService(ApplicationDbContext context, IStringLocalizer<TexasHoldThemService> localizer)
         {    
             _localizer = localizer;
@@ -26,198 +59,132 @@ namespace Party.Services
         public void Start() {
             _deck = new Deck();
             _deck.Shuffle();
+            _nowRound = 0;
             foreach( var item in PokerUserDic.Values)
             {
                 item.Hand = _deck.Deal(2);
             }
         }
 
-        public List<Card> Round(int round)
+        /// <summary>
+        /// 買籌碼
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="cost"></param>
+        /// <param name="pointCost"></param>
+        /// <param name="chips"></param>
+        public void BuyIn(ulong id,decimal cost, decimal pointCost, ulong chips)
+        {            
+            TradeService.BuyIn(id,cost,pointCost,"Poker Buy In",chips);            
+        }
+        public void SitDown(ulong id, int seat, ulong chips)
         {
-            if (round == 1)
+            using (ApplicationDbContext _context = new())
             {
-                _boardCards = _deck.Deal(3);
+                var user = _context.UserAccount.Find(id);
+            
+            var newUser = new PokerUser { Id = id, Seat = seat,Chips=user.Chips };
+            PokerUserDic.Add(seat, newUser);
+            IDPokerUserDic.Add(id, newUser);
             }
-            else {
-                _boardCards.AddRange(_deck.Deal(1));                
-            }
-            return _boardCards;
         }
-
-
-        public void BuyIn(ulong id,int seat, decimal cost, decimal pointCost, int chips)
+        /// <summary>
+        /// 下注
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="chips"></param>
+        /// <returns></returns>
+        public string Bet(ulong id,ulong chips)
         {
-            TradeService.Buy(id,cost,pointCost,"Poker Buy In");
-            PokerUserDic.Add(seat, new PokerUser {Id=id,Chips=chips });
-        }
-   
-        public string  Bet(ulong id, int seat,int chips,bool isAllIn=false)
-        {
-            PokerUserDic.TryGetValue(seat, out var player);
-            if (player.Id != id) {
-                //驗證失敗
-                return"位置不同人";
-            }
+            IDPokerUserDic.TryGetValue(id, out var player);
 
             var tempChips = player.BoardChips + chips;
-            if (tempChips > player.Chips) {
+            if (chips > player.Chips) {
                 return "超出籌碼上限";//error
             }
 
-            //all in
-            if (isAllIn) {
-                tempChips=player.Chips;
+            if (chips == player.Chips) {
+                AllIn(id);
+                return "";
             }
+
             //加注
             if (tempChips > _allInChips)
             {
                 //todo驗證數量
                 player.BoardChips = tempChips;
                 _allInChips = tempChips;
-                _addBetPlayer =seat;
+                _addBetPlayer = player.Seat;
             }
             //跟住
             else if (tempChips == _allInChips)
             {
                 player.BoardChips = tempChips;
+                //todo 最後一個跟注，要進下一輪
+                _boardCards.Round(ref _nowRound, _deck);
             }
             else if (tempChips <_allInChips)
             {
                 //error
                 return"下注數不夠";
             }
-            return"";
+
+            player.Chips -= chips;
+            _allBoardChips += chips;
+
+            return "";
         }
 
-        public HandCards Big(List<Card> boardAndHand) {
-            Dictionary<int, byte> countCards = new Dictionary<int,byte>();
-            Dictionary<char, List<Card>> countColor = new Dictionary<char, List<Card>>();
-            (byte num, byte count) max1 =(0,1);
-            (byte num, byte count) max2 = (0, 1);
-            (byte num, byte count) max3 = (0, 1);
+        public void AllIn(ulong id)
+        {
+            IDPokerUserDic.TryGetValue(id, out var player);
+            player.IsAllIn = true;
+            player.BoardChips += player.Chips;
+            _allBoardChips += player.Chips;
+            player.Chips = 0;
+            if (player.BoardChips > _allInChips)
+            {
+                _allInChips = player.BoardChips;
+            }
 
-            foreach (var card in boardAndHand) {
-                if (countCards.TryGetValue(card.Num, out byte count))
+        }
+        public static int compare()
+        {
+
+            return 1;
+        }
+        public int End(ulong winUser)
+        {
+            foreach (var user in PokerUserDic.Values) {
+                if (user.Id == winUser)
                 {
-                    count += 1;
-                    if (count > max1.count) {
-                        max1.count = count;
-                        max1.num = card.Num;
-                        if (max1.count == 4)
-                            return new HandCards{ Rank = Level.FourOfKind,RankNum1= max1.num };//一定是4條
-                    }
-                    else if (count > max2.count)
-                    {
-                        //3 2 2
-                        max2.count = count;
-                        max2.num = card.Num;     
-                    }
-                    else if (count > max3.count)
-                    {
-                        max3.count = count;
-                        max3.num = card.Num;
-              
-                    }
+                    user.Chips += _allBoardChips;
                 }
                 else {
-                    countCards[card.Num] = 1;
-                }
-                if (countColor.TryGetValue(card.Suit, out List<Card> listCard))
-                {
-                    listCard.Add(card);
-                }
-                else
-                {
-                    countColor[card.Suit] = new List<Card>();
+                
                 }
             }
-            if (max1.count == 3 && max2.count == 3)
-            {
-                if (max2.num > max1.num)
-                {
-                    Swap(ref max2, ref max1);
-                }
-                return new HandCards { Rank = Level.Fullhouse, RankNum1 = max1.num, RankNum2 = max2.num };//一定是葫蘆
-            }
-
-            if (max3.count == 2)
-            {
-                if (max1.count == 3)
-                {
-                    //3 2 2                                
-                    if (max3.num > max2.num)
-                    {
-                        Swap(ref max2, ref max3);
-                    }
-                    new HandCards { Rank = Level.Fullhouse,RankNum1 = max1.num, RankNum2 = max2.num };
-                }
-                else
-                {
-                    //2 2 2
-                    if (max3.num > max2.num)
-                    {
-                        Swap(ref max2, ref max3);
-                    }
-                    if (max2.num > max1.num)
-                    {
-                        Swap(ref max2, ref max1);
-                    }
-                    if (max3.num > max2.num)
-                    {
-                        Swap(ref max2, ref max3);
-                    }
-                    //,RankNum3= max3.num todo 
-                    new HandCards { Rank = Level.TwoPair, RankNum1 = max1.num, RankNum2 = max2.num };
-                }
-            }
-            else if (max1.count == 3 && max2.count == 2) {
-                new HandCards { Rank = Level.Fullhouse, RankNum1 = max1.num, RankNum2 = max2.num };
-            }
-            else if (max1.count == 3 && max2.count == 1)
-            {
-                //boardAndHand
-                //todo
-                new HandCards { Rank = Level.ThressOfKind };
-            }
-            // 篩選出 List<Card> 的 Count > 4 並對其進行倒序
-            Dictionary<char, List<Card>> filteredCountColor = countColor
-                .Where(pair => pair.Value.Count > 4)
-                .ToDictionary(
-                    pair => pair.Key,
-                    pair => pair.Value.OrderByDescending(card => card.Num).ToList()
-                );
-
-                  
-            if (filteredCountColor.Any()) {
-                var ssg = filteredCountColor.First();
-                //有同花
-                for (int i = 0; i < filteredCountColor.Count-4; i++)
-                {
-                    if (ssg.Value[i].Num - 4 == ssg.Value[i+4].Num)
-                    {
-                        return new HandCards { Rank = Level.StraightFlush, RankNum1 = ssg.Value[i].Num };//同花順
-                    }
-                }
-            }
-            var sortedCards = boardAndHand.OrderBy(card => card.Num).ToList();
-            for (int i = 0; i < sortedCards.Count - 4; i++)
-            {
-                if (sortedCards[i].Num - 4 == sortedCards[i + 4].Num)
-                {
-                    return new HandCards { Rank = Level.Straight,RankNum1= sortedCards[i].Num };//順
-                }
-            }
-            return new HandCards();
+            return 1;
         }
-        // 交換方法，使用 ref 傳遞元組參數
-        public static void Swap(ref (byte num, byte count) a, ref (byte num, byte count) b)
+        public int Leave(ulong id)
         {
-            var temp = a;
-            a = b;
-            b = temp;
-        }
+            IDPokerUserDic.TryGetValue (id, out var player);
+            using (ApplicationDbContext _context = new())
+            {
+                //var user = _context.UserAccount.Find(id);
+                var tempChips=player.Chips;
+                player.Chips = 0;  
+                
+                _context.Database.ExecuteSqlInterpolated($"UPDATE Users SET Chips = Chips + {tempChips} WHERE Id = {id}");
+                //user.Chips += tempChips;
+                //_context.SaveChanges();                  
+            }
 
+            IDPokerUserDic.Remove (id);
+            return 1;
+        }
     }
+
     public class CardCount() {
     public int Count { get; private set; }
     public int Rank { get; private set; }

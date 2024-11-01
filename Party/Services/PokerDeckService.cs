@@ -28,7 +28,7 @@ namespace Party.Services
             private List<Card> cards = new List<Card>();
             private Random random = new Random();
             private static bool first = true;
-            private static List<Card> _staticCards;
+            private static List<Card>? _staticCards;
             public Deck()
             {
                 if (first)
@@ -74,24 +74,6 @@ namespace Party.Services
                 }
 
                 return hand;
-            }
-        }
-
-        public class Program
-        {
-            public static void Main1(string[] args)
-            {
-                Deck deck = new Deck();
-                deck.Shuffle();
-
-                int numberOfCardsToDeal = 2; // 可以更改為發的牌數
-                List<Card> hand = deck.Deal(numberOfCardsToDeal);
-
-                Console.WriteLine("Dealt hand:");
-                foreach (var card in hand)
-                {
-                    Console.WriteLine(card);
-                }
             }
         }
 

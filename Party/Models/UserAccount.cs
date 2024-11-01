@@ -22,6 +22,9 @@ namespace Party.Models
         /// </summary>
         public decimal Points { get; set; }
 
+        public ulong Chips { get; set; }
+        
+
         /// <summary>
         /// 好友列表
         /// </summary>
@@ -30,6 +33,11 @@ namespace Party.Models
         /// 好友邀請列表
         /// </summary>
         public ICollection<UserAccountPublic> FriendsInvite { get; set; }
+
+        /// <summary>
+        /// 被好友邀請列表(對方對你發送邀請)
+        /// </summary>
+        public ICollection<UserAccountPublic> FriendsBeInvite { get; set; }
         /// <summary>
         /// 追蹤列表
         /// </summary>

@@ -28,6 +28,24 @@ namespace Party.Services
         public static (bool result, string resultText) AddValue(ulong id, decimal cost, decimal pointCost, string message) {
             return Buy(id,cost*(-1),pointCost*(-1),message);
         }
+
+        public static (bool result, string resultText, UserAccount) BuyIn(ulong id, decimal cost, decimal pointCost, string message,ulong chips)
+        {
+            using (ApplicationDbContext _context = new())
+            {
+                var user = _context.UserAccount.Find(id);
+                if (user == null) return (false, "沒有此ID",null);
+                if (cost > user.Balance) return (false, "餘額不足", user);
+                if (pointCost > user.Points) return (false, "點數不足", user);
+                user.Balance -= cost;
+                user.Points -= pointCost;
+                user.Chips -= chips;
+                //todo:歷史紀錄
+                _context.SaveChanges();
+           
+            return (true, "Success", user);
+            }
+        }
     }
 
 }
