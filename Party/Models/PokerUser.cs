@@ -2,7 +2,7 @@
 
 namespace Party.Models
 {
-    internal class PokerUser
+    public class PokerUser
     {
         public ulong Id { get; set; }
 
@@ -12,9 +12,14 @@ namespace Party.Models
         public ulong Chips { get; set; }
 
         /// <summary>
-        /// 下注籌碼
+        /// 當輪下注籌碼
         /// </summary>
-        public ulong BoardChips { get; set; }
+        public ulong NowRoundChips { get; set; }
+
+        /// <summary>
+        /// 總下注籌碼
+        /// </summary>
+        public ulong AllBoardChips { get; set; }
         /// <summary>
         /// 座位
         /// </summary>
@@ -23,6 +28,11 @@ namespace Party.Models
         /// IsAllIn
         /// </summary>
         public bool IsAllIn { get; set; }
+
+        /// <summary>
+        /// 是否棄牌
+        /// </summary>
+        public bool IsFold { get; set; }
         /// <summary>
         /// 手牌
         /// </summary>

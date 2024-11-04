@@ -1,4 +1,6 @@
-﻿using Party.Services;
+﻿using Party.Models;
+using Party.Services;
+using Party.Services.TexasHoldThem;
 using static Party.Services.PokerDeckService;
 
 namespace Party.Unit
@@ -141,21 +143,21 @@ namespace Party.Unit
             b = temp;
         }
 
-        public static List<Card> Round(this List<Card> boardCards,ref int round, Deck deck)
+        public static PokerUser NextPlayer(this TexasHoldThemModel room)
         {
-            if (round == 1)
+            var nextSeat = room._nowBetPlayerSeat;//next需要+1但arr又-1
+            PokerUser player;
+            if (nextSeat < room.PokerUserArr.Count())
             {
-                // 使用 deck.Deal(3) 创建一个新的 List<Card>
-                boardCards = deck.Deal(3);
+                player = room.PokerUserArr[nextSeat];
             }
             else
             {
-                // 将新发的牌添加到现有的 List<Card>
-                boardCards.AddRange(deck.Deal(1));
+                player = room.PokerUserArr[0];
             }
-            round++;
-            return boardCards;
+            room._nowBetPlayerSeat = nextSeat+1;
+            return player;
+
         }
     }
-
 }

@@ -5,6 +5,7 @@ using Party.Data;
 using Party.Models;
 using Party.Services;
 using Party.Services.ChatRoom;
+using Party.Services.TexasHoldThem;
 using System;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -31,7 +32,7 @@ namespace Party.Controllers
         [HttpPost]
         public async Task<IActionResult> PostBet(int chips,string roomNumber)
         {
-            var currentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentId = Convert.ToUInt64(User.FindFirstValue(ClaimTypes.NameIdentifier));
             TexasHoldThemService.PokerRoomDic.TryGetValue(roomNumber, out var room);
             // 返回 200 OK，不返回任何內容
             return Ok(); // 或者你可以返回 new { message = "OK" } 以便於客戶端確認
@@ -40,12 +41,12 @@ namespace Party.Controllers
         [HttpPost]
         public async Task<IActionResult> PostBuyIn(int chips, string roomNumber)
         {
-            var currentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentId = Convert.ToUInt64(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (!TexasHoldThemService.PokerRoomDic.TryGetValue(roomNumber, out var room)) {
-                room = new TexasHoldThemService();
-                TexasHoldThemService.PokerRoomDic.TryAdd(roomNumber, );
+                room = new TexasHoldThemModel();
+                TexasHoldThemService.PokerRoomDic.TryAdd(roomNumber, room);
             }
-            room.BuyIn();
+            TexasHoldThemService.BuyIn(currentId);
 
             // 返回 200 OK，不返回任何內容
             return Ok(); // 或者你可以返回 new { message = "OK" } 以便於客戶端確認
@@ -58,6 +59,7 @@ namespace Party.Controllers
         [HttpPost]
         public IActionResult PostJoinRoom(string roomNumber)
         {
+            //沒玩遊戲所以只能聊天
             _chatRoomService.JoinRoom(roomNumber, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return Ok(new { message = "OK" });
         }
@@ -69,8 +71,15 @@ namespace Party.Controllers
         [HttpPost]
         public IActionResult PostCreateRoom(string roomNumber)
         {
-            _chatRoomService.CreateRoom(roomNumber);
-            _chatRoomService.JoinRoom(roomNumber, User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (!TexasHoldThemService.PokerRoomDic.TryGetValue(roomNumber, out var room))
+            {
+                room = new TexasHoldThemModel();
+                TexasHoldThemService.PokerRoomDic.TryAdd(roomNumber, room);
+                //加入聊天室
+                _chatRoomService.CreateRoom(roomNumber);
+                _chatRoomService.JoinRoom(roomNumber, User.FindFirstValue(ClaimTypes.NameIdentifier));
+            }
+
             return Ok(new { message = "OK" });
         }
         /// <summary>
@@ -82,11 +91,11 @@ namespace Party.Controllers
         [HttpPost]
         public async Task<IActionResult> PostSitDown(string roomNumber,int seat)
         {
-            var currentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentId = Convert.ToUInt64(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (!TexasHoldThemService.PokerRoomDic.TryGetValue(roomNumber, out var room))
             {
-                room = new TexasHoldThemService();
-                TexasHoldThemService.PokerRoomDic.TryAdd(roomNumber, );
+                room = new TexasHoldThemModel();
+                TexasHoldThemService.PokerRoomDic.TryAdd(roomNumber, room);
             }
    
             // 返回 200 OK，不返回任何內容
