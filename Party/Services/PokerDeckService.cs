@@ -50,7 +50,9 @@ namespace Party.Services
                     cards = _staticCards.ToList();
                 }
             }
-
+            /// <summary>
+            /// 洗牌
+            /// </summary>
             public void Shuffle()
             {
                 int n = cards.Count;
@@ -62,7 +64,11 @@ namespace Party.Services
                     cards[k] = temp;
                 }
             }
-
+            /// <summary>
+            /// 發牌(x)張
+            /// </summary>
+            /// <param name="numberOfCards"></param>
+            /// <returns></returns>
             public List<Card> Deal(int numberOfCards)
             {
                 List<Card> hand = new List<Card>();
@@ -108,13 +114,17 @@ namespace Party.Services
             /// </summary>
             ThressOfKind=5,
             /// <summary>
-            /// 二條
+            /// 兩對
             /// </summary>
             TwoPair=4,
             /// <summary>
+            /// 一對
+            /// </summary>
+            OnePair = 3,
+            /// <summary>
             /// 單張
             /// </summary>
-            OnePair=3
+            One =2
         }
 
     }

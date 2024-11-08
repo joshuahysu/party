@@ -12,8 +12,12 @@ namespace Party.Services
 {
     public class TexasHoldThemModel
     {
+        public TexasHoldThemModel(ulong bigBlind, ulong smallBlind) {
+            BigBlind = bigBlind;
+            SmallBlind = smallBlind;
+        }
         /// <summary>
-        /// 起始玩家
+        /// 起始玩家(小盲玩家)
         /// </summary>
         public int _starter;
 
@@ -28,15 +32,17 @@ namespace Party.Services
         public ulong _nowMinAddChips;
 
         /// <summary>
-        /// 起始注
-        /// </summary>
-        public readonly ulong _startChips;
-
-        /// <summary>
         /// 最小加注
         /// </summary>
         public readonly ulong _minAddChips;
-
+        /// <summary>
+        /// 小盲
+        /// </summary>
+        public readonly ulong SmallBlind;
+        /// <summary>
+        /// 大盲
+        /// </summary>
+        public readonly ulong BigBlind;
         /// <summary>
         /// 檯面總數
         /// </summary>
@@ -44,17 +50,20 @@ namespace Party.Services
         /// <summary>
         /// 最後加注玩家座位
         /// </summary>
-        public int _addBetPlayerSeat;
+        public int AddBetPlayerSeat;
 
         /// <summary>
         /// 當前玩家
         /// </summary>
-        public int _nowBetPlayerSeat;
-        public Deck _deck;
+        public int NowBetPlayerSeat;
+        /// <summary>
+        /// 牌堆
+        /// </summary>
+        public Deck? _deck;
         /// <summary>
         /// 檯面上的牌
         /// </summary>
-        public List<Card> _boardCards;
+        public List<Card> BoardCards { get; set; } = new();
         /// <summary>
         /// 當前回合
         /// </summary>
@@ -63,7 +72,7 @@ namespace Party.Services
         /// <summary>
         /// 座位對玩家
         /// </summary>
-        public PokerUser[] PokerUserArr;
+        public PokerUser[] PokerUserArr { get; set; } =new PokerUser[12];
         /// <summary>
         /// ID對玩家
         /// </summary>

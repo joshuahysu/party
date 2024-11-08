@@ -1,4 +1,5 @@
-﻿using static Party.Services.PokerDeckService;
+﻿using Party.Services.TexasHoldThem;
+using static Party.Services.PokerDeckService;
 
 namespace Party.Models
 {
@@ -7,9 +8,9 @@ namespace Party.Models
         public ulong Id { get; set; }
 
         /// <summary>
-        /// 遊戲內籌碼
+        /// 玩家房間內籌碼
         /// </summary>
-        public ulong Chips { get; set; }
+        public ulong RoomChips { get; set; }
 
         /// <summary>
         /// 當輪下注籌碼
@@ -37,7 +38,10 @@ namespace Party.Models
         /// 手牌
         /// </summary>
         public List<Card> Hand { get; set; }
-
-
+        /// <summary>
+        /// 最大牌型
+        /// </summary>
+        public HandCards BiggestCards { get; set; }
+        
     }
 }
